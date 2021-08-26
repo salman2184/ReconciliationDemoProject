@@ -1,0 +1,532 @@
+﻿@{
+    ViewBag.Title = "Home Page";
+}
+<style>
+    #tblReadonlyData > table > thead > tr > th{
+        text-align:center !important;
+    }
+    body{
+        font-family:'Segoe UI';
+        font-size:12px;
+    }
+</style>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css"/>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <table id="tblReadonlyData" class="table table-bordered table-condensed table-hover table-striped">
+                <thead>
+                    <tr>
+                        <th colspan="14" style="text-align:center"><input type="number" style="text-align:right" id="txtYear" onchange="GetYearWiseResult(event)" onkeypress="validate(event)" /></th>
+                    </tr>
+                    <tr>
+                        <th colspan="2"></th>
+                        <th>January</th>
+                        <th>February</th>
+                        <th>March</th>
+                        <th>April</th>
+                        <th>May</th>
+                        <th>June</th>
+                        <th>July</th>
+                        <th>August</th>
+                        <th>September</th>
+                        <th>October</th>
+                        <th>November</th>
+                        <th>December</th>
+                    </tr>                    
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>    
+</div>
+
+
+
+
+@section scripts{
+    <script src="//cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            var d = new Date();
+            var n = d.getFullYear();
+            $('#txtYear').val(n);
+            year = n;
+            GetReadOnlyData(1);            
+            GetReadOnlyData(2);
+            GetReadOnlyDataResult();
+            GetBookkeepingData(1);
+            GetBookkeepingData(2);
+            GetReconciliationResult();
+            GetFinalResult();
+            GetCumulativeFinalResult();
+        });
+        var readonlyIncomeObject = {};
+        var readonlyExpenseObject = {};
+        var cumulativeReadonlyIncomeObject = {
+            Type: "Cumulative Income",
+            January: 0,
+            February: 0,
+            March: 0,
+            April: 0,
+            May: 0,
+            June: 0,
+            July: 0,
+            August: 0,
+            September: 0,
+            October: 0,
+            November: 0,
+            December: 0
+        };
+        var cumulativeReadonlyExpenseObject = {
+            Type: "Cumulative Cost",
+            January: 0,
+            February: 0,
+            March: 0,
+            April: 0,
+            May: 0,
+            June: 0,
+            July: 0,
+            August: 0,
+            September: 0,
+            October: 0,
+            November: 0,
+            December: 0
+        };        
+        var resultObject = {};
+        var incomeSum = {};
+        var expenseSum = {};
+        var reconResult = {};
+        var finalResult = {};
+        var cumulativeFinalResult = {
+            Type: "Cumulative Final Result",
+            January: 0,
+            February: 0,
+            March: 0,
+            April:0,
+            May: 0,
+            June: 0,
+            July: 0,
+            August: 0,
+            September: 0,
+            October: 0,
+            November: 0,
+            December: 0
+        };
+        var tbody = $("#tblReadonlyData tbody");
+        var year = $('#txtYear').val();
+        function GetReadOnlyData(type) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetReadonlyData", "Home")" + "/?year="+year+"&Type="+type+"",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    var result = JSON.parse(response);
+                    $.each(result, function (i, item) {                                                
+                        tbody.append("<tr><td colspan='2' style='text-align:center;font-weight:bold'>"
+                            + result[i].Type + "</td><td style='text-align:right'>"
+                            + result[i].January + "</td><td style='text-align:right'>"
+                            + result[i].February + "</td><td style='text-align:right'>"
+                            + result[i].March + "</td><td style='text-align:right'>"
+                            + result[i].April + "</td><td style='text-align:right'>"
+                            + result[i].May + "</td><td style='text-align:right'>"
+                            + result[i].June + "</td><td style='text-align:right'>"
+                            + result[i].July + "</td><td style='text-align:right'>"
+                            + result[i].August + "</td><td style='text-align:right'>"
+                            + result[i].September + "</td><td style='text-align:right'>"
+                            + result[i].October + "</td><td style='text-align:right'>"
+                            + result[i].November + "</td><td style='text-align:right'>"
+                            + result[i].December + "</td></tr>");
+                        if (type == 1) {
+                            readonlyIncomeObject = {
+                                January: result[i].January,
+                                February: result[i].February,
+                                March: result[i].March,
+                                April: result[i].April,
+                                May: result[i].May,
+                                June: result[i].June,
+                                July: result[i].July,
+                                August: result[i].August,
+                                September: result[i].September,
+                                October: result[i].October,
+                                November: result[i].November,
+                                December: result[i].December,
+                            };
+                            GetCumulativeIncome();
+                        }
+                        else if (type == 2) {
+                            readonlyExpenseObject = {
+                                January: result[i].January,
+                                February: result[i].February,
+                                March: result[i].March,
+                                April: result[i].April,
+                                May: result[i].May,
+                                June: result[i].June,
+                                July: result[i].July,
+                                August: result[i].August,
+                                September: result[i].September,
+                                October: result[i].October,
+                                November: result[i].November,
+                                December: result[i].December,
+                            };
+                            GetCumulativeExpense();
+                        }
+
+                    });
+                    
+                    
+                }
+            });
+        }
+        function GetBookkeepingData(type) {
+            $.ajax({
+                type: "GET",
+                url: "@Url.Action("GetBookkeepingData", "Home")" + "/?year="+year+"&type="+type+"",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                async: false,
+                success: function (response) {
+                    debugger;
+                    var tdId = '';
+                    var result = JSON.parse(response).Table;
+                    var summary = JSON.parse(response).Table1[0];
+                    if (type == 1) {
+                        incomeSum = summary;
+                        tdId = 'tdIncome';
+                    }
+                    else if (type == 2) {
+                        expenseSum = summary;
+                        tdId = 'tdExpense';
+                    }
+                    $.each(result, function (i, item) {
+                        
+                        tbody.append("<tr><td id='" + tdId + "' style='text-align:center;vertical-align: middle;'>"
+                            + result[i].TypeText + "</td><td style='text-align:right'>"
+                            + result[i].TypeName + "</td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px;text-align:right' value='" + result[i].January + "' id='January_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(January_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].February + "' id='February_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(February_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].March + "' id='March_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(March_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].April + "' id='April_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(April_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].May + "' id='May_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(May_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].June + "' id='June_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(June_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].July + "' id='July_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(July_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].August + "' id='August_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(August_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].September + "' id='September_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(September_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].October + "' id='October_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(October_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].November + "' id='November_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(November_" + result[i].TypeId
+                            + ")' /></td><td style='text-align:right'><input onkeypress='validate(event)' type='number' style='width:70px; text-align:right' value='" + result[i].December + "' id='December_" + result[i].TypeId + "' onchange='SaveOrUpdateValue(id)' /></td></tr>");
+                        
+
+                    });
+                    if (type == 1) {
+                        SummerizeIncomeTd();
+                    }
+                    else if (type == 2) {
+                        SummerizeExpenseTd();
+                    }
+                }
+            });
+        }
+        function SaveOrUpdateValue(textBoxId) {
+            var id = textBoxId.id;
+            var value = textBoxId.value;
+            var typeId = id.split("_")[1];
+            var month = id.split("_")[0];
+            var data = { amount: value, typeId: typeId, month: month, year: year };
+            $.ajax({
+                type: "POST",
+                url: "@Url.Action("SaveOrUpdateBookkeepingData", "Home")",
+                contentType: "application/json; charset=utf-8",
+                dataType: "json",
+                data: JSON.stringify(data),
+                success: function (response) {
+                    toastr["success"]("Updated Successfully");
+                    tbody.remove();
+                    $('#tblReadonlyData').append("<tbody></tbody");
+                    tbody = $("#tblReadonlyData tbody");
+                    GetReadOnlyData(1);
+                    GetReadOnlyData(2);
+                    GetReadOnlyDataResult();
+                    GetBookkeepingData(1);
+                    GetBookkeepingData(2);
+                    GetReconciliationResult();
+                    GetFinalResult();
+                    GetCumulativeFinalResult();
+                }
+            });
+        }
+        function GetReconciliationResult() {
+            debugger;
+            reconResult = {
+                Type: "Reconciliation Result",
+                January: incomeSum.January - expenseSum.January,
+                February: incomeSum.February - expenseSum.February,
+                March: incomeSum.March - expenseSum.March,
+                April: incomeSum.April - expenseSum.April,
+                May: incomeSum.May - expenseSum.May,
+                June: incomeSum.June - expenseSum.June,
+                July: incomeSum.July - expenseSum.July,
+                August: incomeSum.August - expenseSum.August,
+                September: incomeSum.September - expenseSum.September,
+                October: incomeSum.October - expenseSum.October,
+                November: incomeSum.November - expenseSum.November,
+                December: incomeSum.December - expenseSum.December,
+            };
+            tbody.append("<tr style='font-weight:bold'><td colspan='2' style='text-align:center'>"
+                + reconResult.Type + "</td><td style='text-align:right'>"
+                + reconResult.January + "</td><td style='text-align:right'>"
+                + reconResult.February + "</td><td style='text-align:right'>"
+                + reconResult.March + "</td><td style='text-align:right'>"
+                + reconResult.April + "</td><td style='text-align:right'>"
+                + reconResult.May + "</td><td style='text-align:right'>"
+                + reconResult.June + "</td><td style='text-align:right'>"
+                + reconResult.July + "</td><td style='text-align:right'>"
+                + reconResult.August + "</td><td style='text-align:right'>"
+                + reconResult.September + "</td><td style='text-align:right'>"
+                + reconResult.October + "</td><td style='text-align:right'>"
+                + reconResult.November + "</td><td style='text-align:right'>"
+                + reconResult.December + "</td></tr>");
+        }
+        function GetFinalResult() {
+            finalResult = {
+                Type: "Final Result",
+                January: resultObject.January + reconResult.January,
+                February: resultObject.February + reconResult.February,
+                March: resultObject.March + reconResult.March,
+                April: resultObject.April + reconResult.April,
+                May: resultObject.May + reconResult.May,
+                June: resultObject.June + reconResult.June,
+                July: resultObject.July + reconResult.July,
+                August: resultObject.August + reconResult.August,
+                September: resultObject.September + reconResult.September,
+                October: resultObject.October + reconResult.October,
+                November: resultObject.November + reconResult.November,
+                December: resultObject.December + reconResult.December,
+            };
+            tbody.append("<tr><td colspan='2' style='text-align:center'>"
+                + finalResult.Type + "</td><td style='text-align:right'>"
+                + finalResult.January + "</td><td style='text-align:right'>"
+                + finalResult.February + "</td><td style='text-align:right'>"
+                + finalResult.March + "</td><td style='text-align:right'>"
+                + finalResult.April + "</td><td style='text-align:right'>"
+                + finalResult.May + "</td><td style='text-align:right'>"
+                + finalResult.June + "</td><td style='text-align:right'>"
+                + finalResult.July + "</td><td style='text-align:right'>"
+                + finalResult.August + "</td><td style='text-align:right'>"
+                + finalResult.September + "</td><td style='text-align:right'>"
+                + finalResult.October + "</td><td style='text-align:right'>"
+                + finalResult.November + "</td><td style='text-align:right'>"
+                + finalResult.December + "</td></tr>");
+        }
+        function GetCumulativeFinalResult() {
+            cumulativeFinalResult.January = finalResult.January;
+            cumulativeFinalResult.February = finalResult.February + cumulativeFinalResult.January;
+            cumulativeFinalResult.March = finalResult.March + cumulativeFinalResult.February;
+            cumulativeFinalResult.April = finalResult.April + cumulativeFinalResult.March;
+            cumulativeFinalResult.May = finalResult.May + cumulativeFinalResult.April;
+            cumulativeFinalResult.June = finalResult.June + cumulativeFinalResult.May;
+            cumulativeFinalResult.July = finalResult.July + cumulativeFinalResult.June;
+            cumulativeFinalResult.August = finalResult.August + cumulativeFinalResult.July;
+            cumulativeFinalResult.September = finalResult.September + cumulativeFinalResult.August;
+            cumulativeFinalResult.October = finalResult.October + cumulativeFinalResult.September;
+            cumulativeFinalResult.November = finalResult.November + cumulativeFinalResult.October;
+            cumulativeFinalResult.December = finalResult.December + cumulativeFinalResult.November;
+
+            tbody.append("<tr style='font-weight:bold'><td colspan='2' style='text-align:center'>"
+                + cumulativeFinalResult.Type + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.January + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.February + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.March + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.April + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.May + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.June + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.July + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.August + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.September + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.October + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.November + "</td><td style='text-align:right'>"
+                + cumulativeFinalResult.December + "</td></tr>");
+        }
+        function validate(evt) {
+            var theEvent = evt || window.event;
+
+            // Handle paste
+            if (theEvent.type === 'paste') {
+                key = event.clipboardData.getData('text/plain');
+            } else {
+                // Handle key press
+                var key = theEvent.keyCode || theEvent.which;
+                key = String.fromCharCode(key);
+            }
+            var regex = /[0-9]|\./;
+            if (!regex.test(key)) {
+                theEvent.returnValue = false;
+                if (theEvent.preventDefault) theEvent.preventDefault();
+            }
+        }
+        function GetReadOnlyDataResult() {
+            resultObject = {
+                Type: "Result",
+                January: readonlyIncomeObject.January - readonlyExpenseObject.January,
+                February: readonlyIncomeObject.February - readonlyExpenseObject.February,
+                March: readonlyIncomeObject.March - readonlyExpenseObject.March,
+                April: readonlyIncomeObject.April - readonlyExpenseObject.April,
+                May: readonlyIncomeObject.May - readonlyExpenseObject.May,
+                June: readonlyIncomeObject.June - readonlyExpenseObject.June,
+                July: readonlyIncomeObject.July - readonlyExpenseObject.July,
+                August: readonlyIncomeObject.August - readonlyExpenseObject.August,
+                September: readonlyIncomeObject.September - readonlyExpenseObject.September,
+                October: readonlyIncomeObject.October - readonlyExpenseObject.October,
+                November: readonlyIncomeObject.November - readonlyExpenseObject.November,
+                December: readonlyIncomeObject.December - readonlyExpenseObject.December,
+            };
+            tbody.append("<tr style='font-weight:bold'><td colspan='2' style='text-align:center'>"
+                + resultObject.Type + "</td><td style='text-align:right'>"
+                + resultObject.January + "</td><td style='text-align:right'>"
+                + resultObject.February + "</td><td style='text-align:right'>"
+                + resultObject.March + "</td><td style='text-align:right'>"
+                + resultObject.April + "</td><td style='text-align:right'>"
+                + resultObject.May + "</td><td style='text-align:right'>"
+                + resultObject.June + "</td><td style='text-align:right'>"
+                + resultObject.July + "</td><td style='text-align:right'>"
+                + resultObject.August + "</td><td style='text-align:right'>"
+                + resultObject.September + "</td><td style='text-align:right'>"
+                + resultObject.October + "</td><td style='text-align:right'>"
+                + resultObject.November + "</td><td style='text-align:right'>"
+                + resultObject.December + "</td></tr>");
+
+            tbody.append("<tr><th colspan='14' style='text-align: center;font-weight:bold'>Reconciliation</th></tr>");
+        }
+        function GetCumulativeIncome() {
+            cumulativeReadonlyIncomeObject.January = readonlyIncomeObject.January;
+            cumulativeReadonlyIncomeObject.February = readonlyIncomeObject.February + cumulativeReadonlyIncomeObject.January;
+            cumulativeReadonlyIncomeObject.March = readonlyIncomeObject.March + cumulativeReadonlyIncomeObject.February;
+            cumulativeReadonlyIncomeObject.April = readonlyIncomeObject.April + cumulativeReadonlyIncomeObject.March;
+            cumulativeReadonlyIncomeObject.May = readonlyIncomeObject.May + cumulativeReadonlyIncomeObject.April;
+            cumulativeReadonlyIncomeObject.June = readonlyIncomeObject.June + cumulativeReadonlyIncomeObject.May;
+            cumulativeReadonlyIncomeObject.July = readonlyIncomeObject.July + cumulativeReadonlyIncomeObject.June;
+            cumulativeReadonlyIncomeObject.August = readonlyIncomeObject.August + cumulativeReadonlyIncomeObject.July;
+            cumulativeReadonlyIncomeObject.September = readonlyIncomeObject.September + cumulativeReadonlyIncomeObject.August;
+            cumulativeReadonlyIncomeObject.October = readonlyIncomeObject.October + cumulativeReadonlyIncomeObject.September;
+            cumulativeReadonlyIncomeObject.November = readonlyIncomeObject.November + cumulativeReadonlyIncomeObject.October;
+            cumulativeReadonlyIncomeObject.December = readonlyIncomeObject.December + cumulativeReadonlyIncomeObject.November;
+
+            tbody.append("<tr style='font-weight:bold'><td colspan='2' style='text-align:center'>"
+                + cumulativeReadonlyIncomeObject.Type + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.January + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.February + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.March + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.April + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.May + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.June + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.July + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.August + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.September + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.October + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.November + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyIncomeObject.December + "</td></tr>");
+        }
+        function GetCumulativeExpense() {
+            cumulativeReadonlyExpenseObject.January = readonlyExpenseObject.January;
+            cumulativeReadonlyExpenseObject.February = readonlyExpenseObject.February + cumulativeReadonlyExpenseObject.January;
+            cumulativeReadonlyExpenseObject.March = readonlyExpenseObject.March + cumulativeReadonlyExpenseObject.February;
+            cumulativeReadonlyExpenseObject.April = readonlyExpenseObject.April + cumulativeReadonlyExpenseObject.March;
+            cumulativeReadonlyExpenseObject.May = readonlyExpenseObject.May + cumulativeReadonlyExpenseObject.April;
+            cumulativeReadonlyExpenseObject.June = readonlyExpenseObject.June + cumulativeReadonlyExpenseObject.May;
+            cumulativeReadonlyExpenseObject.July = readonlyExpenseObject.July + cumulativeReadonlyExpenseObject.June;
+            cumulativeReadonlyExpenseObject.August = readonlyExpenseObject.August + cumulativeReadonlyExpenseObject.July;
+            cumulativeReadonlyExpenseObject.September = readonlyExpenseObject.September + cumulativeReadonlyExpenseObject.August;
+            cumulativeReadonlyExpenseObject.October = readonlyExpenseObject.October + cumulativeReadonlyExpenseObject.September;
+            cumulativeReadonlyExpenseObject.November = readonlyExpenseObject.November + cumulativeReadonlyExpenseObject.October;
+            cumulativeReadonlyExpenseObject.December = readonlyExpenseObject.December + cumulativeReadonlyExpenseObject.November;
+
+            tbody.append("<tr style='font-weight:bold'><td colspan='2' style='text-align:center'>"
+                + cumulativeReadonlyExpenseObject.Type + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.January + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.February + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.March + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.April + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.May + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.June + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.July + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.August + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.September + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.October + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.November + "</td><td style='text-align:right'>"
+                + cumulativeReadonlyExpenseObject.December + "</td></tr>");
+        }
+        function GetYearWiseResult(event) {
+            year = $('#txtYear').val();
+            tbody.remove();
+            $('#tblReadonlyData').append("<tbody></tbody");
+            tbody = $("#tblReadonlyData tbody");
+            GetReadOnlyData(1);
+            GetReadOnlyData(2);
+            GetReadOnlyDataResult();
+            GetBookkeepingData(1);
+            GetBookkeepingData(2);
+            GetReconciliationResult();
+            GetFinalResult();
+            GetCumulativeFinalResult();
+        }
+        function SummerizeIncomeTd() {
+            var table = $('#tblReadonlyData');
+            $(table).each(function () {
+                $(table).find('td').each(function () {
+                    var $this = $(this);
+                    var col = $this.index();
+                    var html = $this.html();
+                    var row = $(this).parent()[0].rowIndex;
+                    var tdId = $(this).attr('id');
+                    var span = 1;
+                    var cell_above = $($this.parent().prev().children()[col]);
+                    // look for cells one above another with the same text
+                    while (cell_above.html() === html && tdId == "tdIncome") { // if the text is the same
+                        span += 1; // increase the span
+                        cell_above_old = cell_above; // store this cell
+                        cell_above = $(cell_above.parent().prev().children()[col]); // and go to the next cell above
+                    }
+
+                    // if there are at least two columns with the same value, 
+                    // set a new span to the first and hide the other
+                    if (span > 1) {
+                        // console.log(span);
+                        $(cell_above_old).attr('rowspan', span);
+                        $this.hide();
+                    }
+
+                });
+            });
+        }
+        function SummerizeExpenseTd() {
+            var table = $('#tblReadonlyData');
+            $(table).each(function () {
+                $(table).find('td').each(function () {
+                    var $this = $(this);
+                    var col = $this.index();
+                    var html = $this.html();
+                    var row = $(this).parent()[0].rowIndex;
+                    var tdId = $(this).attr('id');
+                    var span = 1;
+                    var cell_above = $($this.parent().prev().children()[col]);
+                    // look for cells one above another with the same text
+                    while (cell_above.html() === html && tdId == "tdExpense") { // if the text is the same
+                        span += 1; // increase the span
+                        cell_above_old = cell_above; // store this cell
+                        cell_above = $(cell_above.parent().prev().children()[col]); // and go to the next cell above
+                    }
+
+                    // if there are at least two columns with the same value, 
+                    // set a new span to the first and hide the other
+                    if (span > 1) {
+                        // console.log(span);
+                        $(cell_above_old).attr('rowspan', span);
+                        $this.hide();
+                    }
+
+                });
+            });
+        }
+    </script>
+} 
